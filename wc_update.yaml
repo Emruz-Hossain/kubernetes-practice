@@ -1,0 +1,30 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: wc-deployment
+  labels: 
+    name: wc-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: wc-pod
+  minReadySeconds:  5
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      name:  wc-pod
+      labels:
+        name: wc-pod
+    spec:
+      containers:
+      - name: webcalculator
+        image: emruzhossain/webcalculator:v5
+        ports:
+        - name:  container-port
+          containerPort:  9000
+          protocol: TCP

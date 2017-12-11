@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name:  web-calculator-service2
+  labels:
+    name: web-calculator
+spec:
+  selector:
+    app:  web-calculator
+  type:  NodePort
+  ports:
+  - name:  wc-port
+    port:  80
+    targetPort:  8081 

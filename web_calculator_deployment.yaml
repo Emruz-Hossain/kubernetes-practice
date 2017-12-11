@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: wc-deployment
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: wc
+    spec:
+      containers:
+      - name: webcalculator
+        image: emruzhossain/webcalculator:v1 

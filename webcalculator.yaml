@@ -1,0 +1,39 @@
+#------------ Create deployment for webcalculator ---------------------
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: wc-deployment
+  labels: 
+    name: wc-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: wc-pod
+  template:
+    metadata:
+      name:  wc-pod
+      labels:
+        name: wc-pod
+    spec:
+      containers:
+      - name: webcalculator
+        image: emruzhossain/webcalculator:latest
+        ports:
+        - name:  container-port
+          containerPort:  9000
+          protocol: TCP
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  wc-service
+spec:
+  selector:
+    name: wc-pod
+  type: NodePort
+  ports:
+  - name:  service-port
+    port:  80
+    targetPort:  container-port
