@@ -62,6 +62,7 @@ var createDeploymentCmd = &cobra.Command{
 			ObjectMeta:metav1.ObjectMeta{
 				Name: "wc-deployment",
 			},
+
 			Spec:appsv1beta2.DeploymentSpec{
 				Replicas: &numberOfReplica,
 				Selector: &metav1.LabelSelector{
