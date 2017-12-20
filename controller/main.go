@@ -2,8 +2,8 @@ package main
 
 import (
 	"k8s.io/api/core/v1"
-	//meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/client-go/util/homedir"
-
+	rt "k8s.io/apimachinery/pkg/runtime"
 
 
 	"log"
@@ -19,6 +19,7 @@ import (
 	"time"
 	"os"
 	//"github.com/mailru/easyjson/tests"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 type Controller struct{
@@ -67,7 +68,16 @@ func main()  {
 	clientset,err:=kubernetes.NewForConfig(config)
 
 	//create a pod List Watcher
-	podListWatcher:=cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(),"pods",v1.NamespaceDefault,fields.Everything())
+	podListWatcher:=&cache.ListWatch{
+		ListFunc: func(options meta_v1.ListOptions) (rt.Object, error) {
+			return clientset.CoreV1().Pods(v1.NamespaceAll).List(meta_v1.ListOptions{})
+		},
+		WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			return clientset.CoreV1().Pods(v1.NamespaceAll).Watch(options)
+		},
+	}
+
+	//podListWatcher:=cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(),"pods",v1.NamespaceDefault,fields.Everything())
 
 	//create working queue
 	queue:=workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
@@ -137,7 +147,7 @@ func (c *Controller)runPodWatcher(stopCh chan struct{})  {
 	// continously run runWorker at 1 second  interval to process tasks in working queue until stopCh signal
 	go wait.Until(c.runWorker,time.Second,stopCh)
 
-	<-stopCh
+	<-stopCh		//stack here until a message appears on stopCh channel.
 }
 
 func (c *Controller)runWorker()  {
