@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned"
-	crdexamplev1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crdcontroller/v1alpha1"
-	fakecrdexamplev1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crdcontroller/v1alpha1/fake"
+	crdv1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1"
+	fakecrdv1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -44,12 +44,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// CrdexampleV1alpha1 retrieves the CrdexampleV1alpha1Client
-func (c *Clientset) CrdexampleV1alpha1() crdexamplev1alpha1.CrdexampleV1alpha1Interface {
-	return &fakecrdexamplev1alpha1.FakeCrdexampleV1alpha1{Fake: &c.Fake}
+// CrdV1alpha1 retrieves the CrdV1alpha1Client
+func (c *Clientset) CrdV1alpha1() crdv1alpha1.CrdV1alpha1Interface {
+	return &fakecrdv1alpha1.FakeCrdV1alpha1{Fake: &c.Fake}
 }
 
-// Crdexample retrieves the CrdexampleV1alpha1Client
-func (c *Clientset) Crdexample() crdexamplev1alpha1.CrdexampleV1alpha1Interface {
-	return &fakecrdexamplev1alpha1.FakeCrdexampleV1alpha1{Fake: &c.Fake}
+// Crd retrieves the CrdV1alpha1Client
+func (c *Clientset) Crd() crdv1alpha1.CrdV1alpha1Interface {
+	return &fakecrdv1alpha1.FakeCrdV1alpha1{Fake: &c.Fake}
 }

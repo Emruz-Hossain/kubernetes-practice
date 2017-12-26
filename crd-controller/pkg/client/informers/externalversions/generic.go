@@ -4,7 +4,7 @@ package externalversions
 
 import (
 	"fmt"
-	v1alpha1 "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/apis/crdcontroller/v1alpha1"
+	v1alpha1 "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -35,9 +35,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=crdexample.com, Version=v1alpha1
+	// Group=crd.emruz.com, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("customdeployments"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Crdexample().V1alpha1().CustomDeployments().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1alpha1().CustomDeployments().Informer()}, nil
 
 	}
 

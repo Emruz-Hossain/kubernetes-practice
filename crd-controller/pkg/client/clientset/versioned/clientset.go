@@ -1,7 +1,7 @@
 package versioned
 
 import (
-	crdexamplev1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crdcontroller/v1alpha1"
+	crdv1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1"
 	glog "github.com/golang/glog"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -10,27 +10,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	CrdexampleV1alpha1() crdexamplev1alpha1.CrdexampleV1alpha1Interface
+	CrdV1alpha1() crdv1alpha1.CrdV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Crdexample() crdexamplev1alpha1.CrdexampleV1alpha1Interface
+	Crd() crdv1alpha1.CrdV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	crdexampleV1alpha1 *crdexamplev1alpha1.CrdexampleV1alpha1Client
+	crdV1alpha1 *crdv1alpha1.CrdV1alpha1Client
 }
 
-// CrdexampleV1alpha1 retrieves the CrdexampleV1alpha1Client
-func (c *Clientset) CrdexampleV1alpha1() crdexamplev1alpha1.CrdexampleV1alpha1Interface {
-	return c.crdexampleV1alpha1
+// CrdV1alpha1 retrieves the CrdV1alpha1Client
+func (c *Clientset) CrdV1alpha1() crdv1alpha1.CrdV1alpha1Interface {
+	return c.crdV1alpha1
 }
 
-// Deprecated: Crdexample retrieves the default version of CrdexampleClient.
+// Deprecated: Crd retrieves the default version of CrdClient.
 // Please explicitly pick a version.
-func (c *Clientset) Crdexample() crdexamplev1alpha1.CrdexampleV1alpha1Interface {
-	return c.crdexampleV1alpha1
+func (c *Clientset) Crd() crdv1alpha1.CrdV1alpha1Interface {
+	return c.crdV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -49,7 +49,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.crdexampleV1alpha1, err = crdexamplev1alpha1.NewForConfig(&configShallowCopy)
+	cs.crdV1alpha1, err = crdv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.crdexampleV1alpha1 = crdexamplev1alpha1.NewForConfigOrDie(c)
+	cs.crdV1alpha1 = crdv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -75,7 +75,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.crdexampleV1alpha1 = crdexamplev1alpha1.New(c)
+	cs.crdV1alpha1 = crdv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

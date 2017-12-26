@@ -4,7 +4,7 @@ package externalversions
 
 import (
 	versioned "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned"
-	crdcontroller "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/crdcontroller"
+	crd_emruz_com "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/crd.emruz.com"
 	internalinterfaces "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -106,9 +106,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Crdexample() crdcontroller.Interface
+	Crd() crd_emruz_com.Interface
 }
 
-func (f *sharedInformerFactory) Crdexample() crdcontroller.Interface {
-	return crdcontroller.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Crd() crd_emruz_com.Interface {
+	return crd_emruz_com.New(f, f.namespace, f.tweakListOptions)
 }
