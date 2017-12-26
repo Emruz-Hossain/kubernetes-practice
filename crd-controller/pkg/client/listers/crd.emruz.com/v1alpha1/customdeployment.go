@@ -3,7 +3,7 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
+	v1alpha1 "github.com/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

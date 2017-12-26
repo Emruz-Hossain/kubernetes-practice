@@ -1,9 +1,9 @@
 package fake
 
 import (
-	clientset "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned"
-	crdv1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1"
-	fakecrdv1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1/fake"
+	clientset "github.com/kubernetes-practice/crd-controller/pkg/client/clientset/versioned"
+	crdv1alpha1 "github.com/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1"
+	fakecrdv1alpha1 "github.com/kubernetes-practice/crd-controller/pkg/client/clientset/versioned/typed/crd.emruz.com/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

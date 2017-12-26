@@ -3,9 +3,9 @@
 package externalversions
 
 import (
-	versioned "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/clientset/versioned"
-	crd_emruz_com "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/crd.emruz.com"
-	internalinterfaces "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	versioned "github.com/kubernetes-practice/crd-controller/pkg/client/clientset/versioned"
+	crd_emruz_com "github.com/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/crd.emruz.com"
+	internalinterfaces "github.com/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

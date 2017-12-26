@@ -26,7 +26,7 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
- github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/apis \
+ github.com/kubernetes-practice/crd-controller/pkg/client github.com/kubernetes-practice/crd-controller/pkg/apis \
  crd.emruz.com:v1alpha1
  #--output-base "$(dirname ${BASH_SOURCE})/../../.."
 

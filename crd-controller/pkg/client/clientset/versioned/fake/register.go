@@ -1,7 +1,7 @@
 package fake
 
 import (
-	crdv1alpha1 "github.com/emruz-hossain/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
+	crdv1alpha1 "github.com/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

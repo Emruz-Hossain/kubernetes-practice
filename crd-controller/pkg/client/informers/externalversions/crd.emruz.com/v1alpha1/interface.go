@@ -3,7 +3,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

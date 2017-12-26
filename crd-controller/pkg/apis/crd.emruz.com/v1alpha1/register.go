@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	crdcntrl "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com"
+	crdcntrl "github.com/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com"
 )
 
 // SchemeGroupVersion is group version used to register these objects

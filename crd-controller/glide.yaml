@@ -1,11 +1,25 @@
-package: github.com/Emruz-Hossain/kubernetes-practice/crd-controller
+package: github.com/kubernetes-practice/crd-controller
 import:
+- package: github.com/golang/glog
 - package: k8s.io/api
   subpackages:
   - core/v1
 - package: k8s.io/apimachinery
   subpackages:
+  - pkg/api/errors
   - pkg/apis/meta/v1
+  - pkg/labels
   - pkg/runtime
   - pkg/runtime/schema
-- package: k8s.io/code-generator
+  - pkg/runtime/serializer
+  - pkg/types
+  - pkg/watch
+- package: k8s.io/client-go
+  version: ^6.0.0
+  subpackages:
+  - discovery
+  - discovery/fake
+  - rest
+  - testing
+  - tools/cache
+  - util/flowcontrol

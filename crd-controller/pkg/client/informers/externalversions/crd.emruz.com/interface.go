@@ -3,8 +3,8 @@
 package crd
 
 import (
-	v1alpha1 "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/crd.emruz.com/v1alpha1"
-	internalinterfaces "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/crd.emruz.com/v1alpha1"
+	internalinterfaces "github.com/kubernetes-practice/crd-controller/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

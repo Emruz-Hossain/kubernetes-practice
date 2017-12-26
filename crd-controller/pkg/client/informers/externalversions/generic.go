@@ -4,7 +4,7 @@ package externalversions
 
 import (
 	"fmt"
-	v1alpha1 "github.com/Emruz-Hossain/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
+	v1alpha1 "github.com/kubernetes-practice/crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
