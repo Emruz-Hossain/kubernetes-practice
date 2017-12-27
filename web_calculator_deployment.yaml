@@ -11,4 +11,4 @@ spec:
     spec:
       containers:
       - name: webcalculator
-        image: emruzhossain/webcalculator:v1 
+        image: emruzhossain/webcalculator:v1
