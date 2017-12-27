@@ -26,6 +26,7 @@ import (
 )
 var PreviousPodPhase map[string]string
 var PodOwnerKey map[string]string
+var synchronizationnChannel chan bool
 
 type Controller struct{
 	// for custom deployment
@@ -36,10 +37,11 @@ type Controller struct{
 	deletedDeploymentIndexer cache.Indexer		// if deployment is deleted we may need deplyment object for further processing.
 
 	// for pods under this custom deployment
-	kubeclient 		kubernetes.Clientset
-	podIndexer		cache.Indexer
-	podInformer 	cache.Controller
-	podWorkQueue	workqueue.RateLimitingInterface
+	kubeclient 			kubernetes.Clientset
+	podIndexer			cache.Indexer
+	podInformer 		cache.Controller
+	podWorkQueue		workqueue.RateLimitingInterface
+	deletedPodIndexer 	cache.Indexer
 	}
 
 func NewController(clientset clientversioned.Clientset, kubeclientset kubernetes.Clientset)  *Controller{
@@ -63,7 +65,7 @@ func NewController(clientset clientversioned.Clientset, kubeclientset kubernetes
 	deletedDeploymentIndexer:=cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,cache.Indexers{})
 
 	//create indexer and informer for custom deployment
-	deploymentIndexer,deploymentInformer:= cache.NewIndexerInformer(deploymentListWatcher, &crdv1alpha1.CustomDeployment{},time.Second*30,cache.ResourceEventHandlerFuncs{
+	deploymentIndexer,deploymentInformer:= cache.NewIndexerInformer(deploymentListWatcher, &crdv1alpha1.CustomDeployment{},0,cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key,err:=cache.MetaNamespaceKeyFunc(obj)
 			if err==nil{
@@ -107,12 +109,16 @@ func NewController(clientset clientversioned.Clientset, kubeclientset kubernetes
 	//create workqueue for custom deployment
 	podWorkQueue:=workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
+	//create deleted indexer for custom deployment
+	deletedPodIndexer:=cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,cache.Indexers{})
+
 	//create indexer and informer for custom deployment
 	podIndexer,podInformer:= cache.NewIndexerInformer(podListWatcher, &api_v1.Pod{},0,cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key,err:=cache.MetaNamespaceKeyFunc(obj)
 			if err==nil{
 				podWorkQueue.Add(key)
+				deletedPodIndexer.Delete(obj)
 			}
 
 		},
@@ -131,6 +137,7 @@ func NewController(clientset clientversioned.Clientset, kubeclientset kubernetes
 		DeleteFunc: func(obj interface{}) {
 			key,err:=cache.MetaNamespaceKeyFunc(obj)
 			if err==nil{
+				deletedPodIndexer.Add(obj)
 				podWorkQueue.Add(key)
 			}
 		},
@@ -143,10 +150,13 @@ func NewController(clientset clientversioned.Clientset, kubeclientset kubernetes
 		deploymentWorkQueue:	 deploymentWorkQueue,
 		deletedDeploymentIndexer:deletedDeploymentIndexer,
 
-		kubeclient:	 kubeclientset,
-		podIndexer:	 podIndexer,
-		podInformer: podInformer,
-		podWorkQueue:podWorkQueue,
+		kubeclient:	 		kubeclientset,
+		podIndexer:	 		podIndexer,
+		podInformer: 		podInformer,
+		podWorkQueue:		podWorkQueue,
+		deletedPodIndexer:	deletedPodIndexer,
+
+
 	}
 
 }
@@ -293,31 +303,43 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 			fmt.Printf("Deployment %s has been deleted.\n",key)
 			c.deletedDeploymentIndexer.Delete(key) //done with the object
 		}
-	}	else{
+	}else{
 		fmt.Println("Sync/Add/Update happed for deployment ",obj.(*crdv1alpha1.CustomDeployment).GetName())
-		customdeployment:=obj.(*crdv1alpha1.CustomDeployment)
+		customdeploymentName:=obj.(*crdv1alpha1.CustomDeployment).GetName()
+		customdeployment,err:=c.clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Get(customdeploymentName,meta_v1.GetOptions{})
 		fmt.Printf("Required: %v | Available: %v | Processing: %v\n",customdeployment.Spec.Replicas,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing)
 
 		//If Current State is not same as Expected State preform necessary modification to meet the Goal.
 		if customdeployment.Status.AvailableReplicas+customdeployment.Status.CurrentlyProcessing < customdeployment.Spec.Replicas{
 
+			//after creating pod it will take time to get in Running state. in the mean time the pod is said to be processing state.
+			err2:=c.UpdateDeploymentStatus(customdeployment,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing+1)
+			if err2!=nil{
+				return err2
+			}
+
+			//create pod
 			pod,err:= c.CreateNewPod(customdeployment.Spec.Template, customdeployment)
 
 			//Failled to create to pod
 			if err!=nil{
 				fmt.Printf("Can't create pod. Error: %v\n",err.Error())
+				err2=c.UpdateDeploymentStatus(customdeployment,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing-1)
+ 				if err2!=nil{
+ 					return err2
+				}
 				return err
 			}
 
 			// Pod successfully created. Hence, update deployment status
-			err=c.UpdateDeploymentStatus(customdeployment,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing+1)
-			podName:=pod.GetName()
+			podName:=string(pod.GetName())
 			PodOwnerKey[podName]=key
+			fmt.Printf("PodName: %s OwnerKey: %s\n",podName,key)
 
-			if err!=nil{
-				fmt.Println("Pod created but failed to update DeploymentStatus.")
-				return err
-			}
+			//if err2!=nil{
+			//	fmt.Println("Pod created but failed to update DeploymentStatus.")
+			//	return err2
+			//}
 
 		}else if customdeployment.Status.AvailableReplicas+customdeployment.Status.CurrentlyProcessing > customdeployment.Spec.Replicas{
 
@@ -401,6 +423,23 @@ func (c *Controller)performActionOnThisPodKey(key string) error {
 	if !exist{	//object is not exist in indexer. maybe it is deleted.
 
 		fmt.Printf("Pod %s is no more exist.\n",key)
+		deletedObj,exist,err:=c.deletedPodIndexer.GetByKey(key) //check if it is in the deleted Indexer to be confirmed it is deleted
+
+		if err==nil && exist{
+			fmt.Printf("pod %s has been deleted.\n",key)
+
+			c.deletedPodIndexer.Delete(key) //done with the object
+
+			podPhase:="Failed"
+			podName:=deletedObj.(*api_v1.Pod).GetName()
+
+			err:=c.checkAndUpdatePodStatus(string(podPhase),key,string(podName))
+
+			delete(PreviousPodPhase,podName)
+			delete(PodOwnerKey,key)
+			return err
+
+		}
 
 
 	}else{
@@ -410,6 +449,9 @@ func (c *Controller)performActionOnThisPodKey(key string) error {
 
 		err:=c.checkAndUpdatePodStatus(string(podPhase),key,string(podName))
 
+		if err==nil{
+			PreviousPodPhase[string(podName)]=string(podPhase)
+		}
 		return err
 
 	}
@@ -471,13 +513,14 @@ func (c *Controller)DeleteAPod(customdeployment *crdv1alpha1.CustomDeployment)  
 }
 
 func (c *Controller)checkAndUpdatePodStatus(podphase string,key string,podName string)  error{
-
-	if PreviousPodPhase[key]!=podphase{
+	fmt.Printf("## PreviousPodPhase: %v CurrentPodPhase: %v\n",PreviousPodPhase[key],podphase)
+	if PreviousPodPhase[podName]!=podphase{
 
 		podownerkey:=PodOwnerKey[podName]
 		ownerObj,exist,err :=c.deploymentIndexer.GetByKey(podownerkey)
 
 		if err!=nil{
+			fmt.Println("Error in getting deployment object from podownerkey")
 			return err
 		}
 
@@ -485,28 +528,33 @@ func (c *Controller)checkAndUpdatePodStatus(podphase string,key string,podName s
 			fmt.Println("Owner does not exist.")
 			return err
 		}
+		deploymentName:=ownerObj.(*crdv1alpha1.CustomDeployment).GetName()
+		customdeployment,err:=c.clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Get(deploymentName,meta_v1.GetOptions{})
+		if err!=nil{
+			return  err
+		}
+		available:=customdeployment.Status.AvailableReplicas
+		processing:=customdeployment.Status.CurrentlyProcessing
 
-		customedeployment:=ownerObj.(*crdv1alpha1.CustomDeployment)
-		available:=customedeployment.Status.AvailableReplicas
-		processing:=customedeployment.Status.CurrentlyProcessing
+		fmt.Printf("PreviousPodPhase: %v CurrentPodPhase: %v\n",PreviousPodPhase[key],podphase)
 
-		if podphase=="Running"&&PreviousPodPhase[key]=="Pending"{
-				err:=c.UpdateDeploymentStatus(customedeployment,available+1,processing-1)
-				PreviousPodPhase[key]=podphase
-				return err
-		}else if podphase=="Pending"&&PreviousPodPhase[key]=="Running"{
-			err:=c.UpdateDeploymentStatus(customedeployment,available-1,processing+1)
-			PreviousPodPhase[key]=podphase
+		if podphase=="Failed"{
+			err:=c.UpdateDeploymentStatus(customdeployment,available-1,processing)
 			return err
+
+		}else if podphase=="Running"&&PreviousPodPhase[podName]=="Pending"{
+				err:=c.UpdateDeploymentStatus(customdeployment,available+1,processing-1)
+				return err
 		}
 
 	}
+
 	return nil
 }
 
 func (c *Controller)UpdateDeploymentStatus(customdeployment *crdv1alpha1.CustomDeployment, AvailableReplicas int32, CurrentlyProcessing int32) error{
 
-	//Don't modify cache. Work creating copy of it
+	//Don't modify cache. Work on it's copy
 	customdeploymentCopy:= customdeployment.DeepCopy()
 
 	customdeploymentCopy.Spec.Replicas = customdeployment.Spec.Replicas
