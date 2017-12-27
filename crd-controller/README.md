@@ -33,7 +33,7 @@ spec:
 ```
 
 ### Yaml for custom-deployment:
-```
+```yaml
 apiVersion: "crd.emruz.com/v1alpha1"
 kind: CustomDeployment
 metadata:
