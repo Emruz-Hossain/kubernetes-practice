@@ -169,7 +169,7 @@ func getKubeConfigPath () string {
 	if _,err:=os.Stat(homeDir+"/.kube/config");err==nil{
 		kubeConfigPath=homeDir+"/.kube/config"
 	}else{
-		fmt.Println("Enter kubernetes config directory: ")
+		fmt.Printf("Enter kubernetes config directory: ")
 		fmt.Scanf("%s",kubeConfigPath)
 	}
 
@@ -294,7 +294,7 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 		return err
 	}
 
-	if !exist{	//object is not exist in indexer. maybe it is deleted.
+	if !exist{	//object does not exist in indexer. maybe it is deleted.
 		fmt.Printf("Deployment %s is no more exist.\n",key)
 
 		_,exist,err:=c.deletedDeploymentIndexer.GetByKey(key) //check if it is in the deleted Indexer to be confirmed it is deleted
@@ -304,49 +304,50 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 			c.deletedDeploymentIndexer.Delete(key) //done with the object
 		}
 	}else{
-		fmt.Println("Sync/Add/Update happed for deployment ",obj.(*crdv1alpha1.CustomDeployment).GetName())
-		customdeploymentName:=obj.(*crdv1alpha1.CustomDeployment).GetName()
-		customdeployment,err:=c.clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Get(customdeploymentName,meta_v1.GetOptions{})
+		customdeployment:=obj.(*crdv1alpha1.CustomDeployment).DeepCopy()
+
+		fmt.Println("Sync/Add/Update happed for deployment ",customdeployment.GetName())
+
 		fmt.Printf("Required: %v | Available: %v | Processing: %v\n",customdeployment.Spec.Replicas,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing)
 
+		label:=""
 		//If Current State is not same as Expected State preform necessary modification to meet the Goal.
 		if customdeployment.Status.AvailableReplicas+customdeployment.Status.CurrentlyProcessing < customdeployment.Spec.Replicas{
-
-			//after creating pod it will take time to get in Running state. in the mean time the pod is said to be processing state.
-			err2:=c.UpdateDeploymentStatus(customdeployment,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing+1)
-			if err2!=nil{
-				return err2
-			}
 
 			//create pod
 			pod,err:= c.CreateNewPod(customdeployment.Spec.Template, customdeployment)
 
-			//Failled to create to pod
+			//Failed to create to pod
 			if err!=nil{
 				fmt.Printf("Can't create pod. Error: %v\n",err.Error())
-				err2=c.UpdateDeploymentStatus(customdeployment,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing-1)
- 				if err2!=nil{
- 					return err2
-				}
+
 				return err
 			}
 
 			// Pod successfully created. Hence, update deployment status
 			podName:=string(pod.GetName())
 			PodOwnerKey[podName]=key
-			fmt.Printf("PodName: %s OwnerKey: %s\n",podName,key)
+			mp:=pod.GetLabels()
 
-			//if err2!=nil{
-			//	fmt.Println("Pod created but failed to update DeploymentStatus.")
-			//	return err2
-			//}
+			for key,value:= range mp{
+				label+=key+":"+value
+			}
+
+			fmt.Printf("PodName: %s OwnerKey: %s	Label: %v\n",podName,key,label)
+
+			err2:=c.UpdateDeploymentStatus(customdeployment,customdeployment.Status.AvailableReplicas,customdeployment.Status.CurrentlyProcessing+1)
+
+			if err2!=nil{
+				fmt.Printf("Pod created but failed to update DeploymentStatus.")
+				return err2
+			}
 
 		}else if customdeployment.Status.AvailableReplicas+customdeployment.Status.CurrentlyProcessing > customdeployment.Spec.Replicas{
 
-			err=c.DeleteAPod(customdeployment)
+			err=c.DeletePod(label, int(customdeployment.Status.AvailableReplicas+customdeployment.Status.CurrentlyProcessing-customdeployment.Spec.Replicas))
 
 			if err!=nil{
-				fmt.Println("Failed to delete pod.")
+				fmt.Printf("Failed to delete pod.")
 				return err
 			}
 
@@ -369,7 +370,7 @@ func (c *Controller)handleErrorForDeployment(err error, key interface{},maxNumbe
 	//Requeue the key for retry if it does not exceed the maximum limit of retry
 	if c.deploymentWorkQueue.NumRequeues(key)<maxNumberOfRetry{
 
-		fmt.Println("Error in processing event with key: %s\nError: %v",key,err.Error())
+		fmt.Printf("Error in processing event with key: %s\nError: %v",key,err.Error())
 		fmt.Printf("Retraying to process the event for %s\n",key)
 
 		// Requeuing the key for retry. This will increase NumRequeues for this key.
@@ -428,10 +429,11 @@ func (c *Controller)performActionOnThisPodKey(key string) error {
 		if err==nil && exist{
 			fmt.Printf("pod %s has been deleted.\n",key)
 
-			c.deletedPodIndexer.Delete(key) //done with the object
+			c.deletedPodIndexer.Delete(key) //done with the objec
+			deletedPod:=deletedObj.(*api_v1.Pod).DeepCopy()
 
 			podPhase:="Failed"
-			podName:=deletedObj.(*api_v1.Pod).GetName()
+			podName:=deletedPod.GetName()
 
 			err:=c.checkAndUpdatePodStatus(string(podPhase),key,string(podName))
 
@@ -443,9 +445,11 @@ func (c *Controller)performActionOnThisPodKey(key string) error {
 
 
 	}else{
-		fmt.Println("Sync/Add/Update happed for Pod: ",obj.(*api_v1.Pod).GetName())
-		podPhase:=obj.(*api_v1.Pod).Status.Phase
-		podName:=obj.(*api_v1.Pod).GetName()
+		pod:=obj.(*api_v1.Pod).DeepCopy()
+
+		fmt.Println("Sync/Add/Update happed for Pod: ",pod.GetName())
+		podPhase:=pod.Status.Phase
+		podName:=pod.GetName()
 
 		err:=c.checkAndUpdatePodStatus(string(podPhase),key,string(podName))
 
@@ -470,7 +474,7 @@ func (c *Controller)handleErrorForPod(err error, key interface{},maxNumberOfRetr
 	//Requeue the key for retry if it does not exceed the maximum limit of retry
 	if c.podWorkQueue.NumRequeues(key)<maxNumberOfRetry{
 
-		fmt.Println("Error in processing event with key: %s\nError: %v",key,err.Error())
+		fmt.Printf("Error in processing event with key: %s\nError: %v",key,err.Error())
 		fmt.Printf("Retraying to process the event for %s\n",key)
 
 		// Requeuing the key for retry. This will increase NumRequeues for this key.
@@ -507,13 +511,20 @@ func (c *Controller)CreateNewPod(podTemplate crdv1alpha1.CustomPodTemplate, cust
 	return newPod,err
 }
 
-func (c *Controller)DeleteAPod(customdeployment *crdv1alpha1.CustomDeployment)  error{
+func (c *Controller)DeletePod(label string, deleteLimit int)  error{
+	//podClient:= c.kubeclient.CoreV1().Pods(api_v1.NamespaceDefault)
 
+	podList,err:=c.kubeclient.CoreV1().Pods(api_v1.NamespaceDefault).List(meta_v1.ListOptions{LabelSelector: label})
+	if err!=nil{
+		fmt.Println(err)
+	}
+	fmt.Println("----------------------")
+	fmt.Println(podList)
 	return nil
 }
 
 func (c *Controller)checkAndUpdatePodStatus(podphase string,key string,podName string)  error{
-	fmt.Printf("## PreviousPodPhase: %v CurrentPodPhase: %v\n",PreviousPodPhase[key],podphase)
+	fmt.Printf("## PreviousPodPhase: %v CurrentPodPhase: %v\n",PreviousPodPhase[podName],podphase)
 	if PreviousPodPhase[podName]!=podphase{
 
 		podownerkey:=PodOwnerKey[podName]
@@ -525,14 +536,11 @@ func (c *Controller)checkAndUpdatePodStatus(podphase string,key string,podName s
 		}
 
 		if !exist{
-			fmt.Println("Owner does not exist.")
+			fmt.Println("Owner does not exist")
 			return err
 		}
-		deploymentName:=ownerObj.(*crdv1alpha1.CustomDeployment).GetName()
-		customdeployment,err:=c.clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Get(deploymentName,meta_v1.GetOptions{})
-		if err!=nil{
-			return  err
-		}
+		customdeployment:=ownerObj.(*crdv1alpha1.CustomDeployment).DeepCopy()
+
 		available:=customdeployment.Status.AvailableReplicas
 		processing:=customdeployment.Status.CurrentlyProcessing
 
